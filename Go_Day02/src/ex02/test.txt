@@ -1,0 +1,3 @@
+../ex00/myFind -f -ext 'go' . | ./myXargs ../ex01/myWC -l
+echo -e "../ex02\n../ex01\n../ex00" | ./myXargs ls -la
+echo -e *.go | ./myXargs cat
