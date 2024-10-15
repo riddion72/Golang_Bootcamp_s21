@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option go_package = "main/pkg/api;api";
+
+package api;
+
+service FrequencyServise {
+ rpc GenerateFrequency(Frequency) returns (stream Frequency);
+}
+
+message Frequency {
+  string session_id = 1;
+  double frequency = 2;
+  int64 timestamp = 3;
+}
