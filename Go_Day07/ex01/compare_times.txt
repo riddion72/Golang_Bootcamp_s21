@@ -1,0 +1,11 @@
+Test case number 0 minCoins2 finished with 7719 ㎲, minCoins with 105 ㎲. The difference is: 7614
+Test case number 1 minCoins2 finished with 632 ㎲, minCoins with 63 ㎲. The difference is: 569
+Test case number 2 minCoins2 finished with 540 ㎲, minCoins with 112 ㎲. The difference is: 428
+Test case number 3 minCoins2 finished with 333 ㎲, minCoins with 55 ㎲. The difference is: 278
+Test case number 4 minCoins2 finished with 11645 ㎲, minCoins with 136 ㎲. The difference is: 11509
+Test case number 5 minCoins2 finished with 1144833 ㎲, minCoins with 664 ㎲. The difference is: 1144169
+Test case number 6 minCoins2 finished with 6481 ㎲, minCoins with 119 ㎲. The difference is: 6362
+Test case number 7 minCoins2 finished with 498 ㎲, minCoins with 64 ㎲. The difference is: 434
+Test case number 8 minCoins2 finished with 537 ㎲, minCoins with 126 ㎲. The difference is: 411
+Test case number 9 minCoins2 finished with 302 ㎲, minCoins with 62 ㎲. The difference is: 240
+Test case number 10 minCoins2 finished with 7273 ㎲, minCoins with 148 ㎲. The difference is: 7125
