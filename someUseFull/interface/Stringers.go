@@ -58,3 +58,33 @@ func main() {
 // 	//fmt.Printf("(%v, %T)\n", z, z)
 // 	fmt.Printf("(%v, %T)\n", i, i)
 // }
+
+// 	names := []Struct1{{"kek"}}
+
+// 	nicks := Map(names, func(val Struct1, idx int) Struct2 {
+// 		return Struct2{Nick: val.Name + "123"}
+// 	})
+
+// 	log.Println(nicks)
+// }
+
+// func Map[T, K any](sl []T, callback func(value T, index int) K) []K {
+// 	m := make([]K, 0, len(sl))
+
+// 	for i, v := range sl {
+// 		result := callback(v, i)
+// 		m = append(m, result)
+// 	}
+
+// 	return m
+// }
+
+// type (
+// 	Struct1 struct {
+// 		Name string
+// 	}
+
+// 	Struct2 struct {
+// 		Nick string
+// 	}
+// )
