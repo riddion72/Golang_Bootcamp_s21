@@ -11,18 +11,14 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"gorm.io/gorm"
 
 	loger "main/internal/logger"
 	api "main/pkg/api/api/proto"
 	cnf "main/pkg/config"
-	model "main/pkg/model"
-	rep "main/pkg/repository"
 )
 
 var (
-	flagK       float64 // Флаг k
-	logFileName string  = "assets/statistics.log"
+	flagK float64 // Флаг k
 
 	bufPool = sync.Pool{
 		New: func() any {
@@ -67,25 +63,7 @@ func (s *Statistics) findAnomaly(value float64) bool {
 	return res
 }
 
-func pushAnomaly(db *gorm.DB, entry *api.Frequency) error {
-	// Сохранение аномалии в базу данных
-	anomaly := model.Anomalies{
-		SessionID: entry.SessionId,
-		Frequency: entry.Frequency,
-		Timestamp: time.Unix(entry.Timestamp, 0),
-	}
-
-	result := db.Create(&anomaly)
-	if result.Error != nil {
-		loger.WriteLog(fmt.Sprintf("Ошибка при сохранении аномалии в БД: %v", result.Error))
-		return result.Error
-	} else {
-		loger.WriteLog(fmt.Sprintf("Аномалия успешно сохранена в ID: %d", anomaly.ID))
-		return nil
-	}
-}
-
-func process(setings *cnf.Config, db *gorm.DB) {
+func process(setings *cnf.Config) {
 	// Устанавливаем соединение
 	conn, err := grpc.NewClient(setings.ServerHost+":"+setings.ServerPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -121,9 +99,6 @@ func process(setings *cnf.Config, db *gorm.DB) {
 			return
 		}
 
-		// Вывод полученного значения
-		// fmt.Printf("Session ID: %s, Frequency: %f, Timestamp: %d\n", entry.SessionId, entry.Frequency, entry.Timestamp)
-
 		// Обновляем статистику с новым значением частоты
 		stats.update(entry.Frequency)
 
@@ -135,10 +110,7 @@ func process(setings *cnf.Config, db *gorm.DB) {
 		// Проверка на аномалию, если количество значений больше 10
 		if stats.Count > 10 {
 			if stats.findAnomaly(entry.Frequency) {
-				if pushAnomaly(db, entry) != nil {
-					loger.WriteLog(fmt.Sprintf("Ошибка при попытке сохранить аномалию в БД: %v", err))
-					return
-				}
+				loger.WriteLog(fmt.Sprintf("Session ID: %s, Frequency: %f, Timestamp: %d\n", entry.SessionId, entry.Frequency, entry.Timestamp))
 			}
 		}
 
@@ -151,7 +123,7 @@ func main() {
 
 	flag.Parse()
 
-	if loger.PrepareLogger(logFileName) != nil {
+	if loger.PrepareLogger() != nil {
 		return
 	}
 
@@ -169,16 +141,10 @@ func main() {
 		return
 	}
 
-	db, err := rep.PrepareDB(setings)
-	if err != nil {
-		loger.WriteLog(fmt.Sprintf("Error DB: %s", err))
-		return
-	}
-
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
-		process(setings, db) // Передаем db в Process
+		process(setings)
 		wg.Done()
 	}()
 	wg.Wait()

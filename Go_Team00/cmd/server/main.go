@@ -4,13 +4,44 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"net/http"
 	"time"
 
 	api "main/pkg/api/api/proto"
 
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 )
+
+// Prometheus metrics
+var (
+	sessionsActive = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "frequency_sessions_active",
+			Help: "Number of active frequency generation sessions",
+		},
+	)
+
+	messagesSent = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "frequency_messages_sent_total",
+			Help: "Total number of frequency messages sent",
+		},
+	)
+
+	streamErrors = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "frequency_stream_errors_total",
+			Help: "Total number of stream errors",
+		},
+	)
+)
+
+func init() {
+	prometheus.MustRegister(sessionsActive, messagesSent, streamErrors)
+}
 
 // server is used to implement helloworld.GreeterServer.
 type server struct {
@@ -18,18 +49,15 @@ type server struct {
 }
 
 func (s *server) GenerateFrequency(req *api.Frequency, stream api.FrequencyServise_GenerateFrequencyServer) error {
-	// Генерируем уникальный идентификатор для каждой сессии
-	uuid := uuid.New().String()
+	sessionsActive.Inc()
+	defer sessionsActive.Dec()
 
-	// Генерируем случайное среднее значение и стандартное отклонение
-	// (для генерации нормального распределения частот)
+	uuid := uuid.New().String()
 	mean := rand.Float64()*20 - 10
 	stdDev := rand.Float64()*1.2 + 0.3
 
-	// Логируем сгенерированные значения
-	log.Printf("Generating frequency mean: %.2f, stddev: %.2f\n", mean, stdDev)
+	log.Printf("New session: %s, mean: %.2f, stddev: %.2f", uuid, mean, stdDev)
 
-	// Генерация частоты и отправка данных клиенту в потоке
 	for {
 		frequency := rand.NormFloat64()*stdDev + mean
 
@@ -40,26 +68,36 @@ func (s *server) GenerateFrequency(req *api.Frequency, stream api.FrequencyServi
 		}
 
 		if err := stream.Send(entry); err != nil {
+			streamErrors.Inc()
 			return err
 		}
-		// log.Printf("%.2f\n", frequency)
+		messagesSent.Inc()
 		time.Sleep(time.Second)
 	}
-
 }
 
 func main() {
+	// Start metrics server
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		log.Println("Metrics server started on :8082")
+		if err := http.ListenAndServe(":8082", nil); err != nil {
+			log.Printf("Failed to start metrics server: %v", err)
+		}
+	}()
+
+	// gRPC server
 	listener, err := net.Listen("tcp", ":8081")
 	if err != nil {
-		log.Fatal("Faeled create server listener: ", err)
+		log.Fatal("Failed to create server listener: ", err)
 	}
 
 	serv := grpc.NewServer()
-
 	api.RegisterFrequencyServiseServer(serv, &server{})
-	log.Printf("server listening at %v", listener.Addr())
+
+	log.Printf("gRPC server listening at %v", listener.Addr())
 	if err := serv.Serve(listener); err != nil {
-		log.Printf("failed to serve: %v", err)
+		log.Printf("Failed to serve: %v", err)
 		serv.GracefulStop()
 	}
 

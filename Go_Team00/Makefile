@@ -1,9 +1,16 @@
-build_client:
-	@go build -o client ./cmd/client/main.go
+build:
+	@docker-compose build --no-cache
+up:
+	@docker-compose up -d
 
-build_server:
-	@go build -o server ./cmd/server/main.go
+down:
+	@docker-compose down
 
-run:
-	@go run -o server ./cmd/server/main.go
-	@go run -o client ./cmd/client/main.go -k 2
+logs:
+	@docker-compose logs -f
+
+prometheus:
+	@open http://localhost:9090
+
+grafana:
+	@open http://localhost:3000

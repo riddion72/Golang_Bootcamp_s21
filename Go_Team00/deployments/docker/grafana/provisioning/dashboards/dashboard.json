@@ -1,0 +1,27 @@
+{
+    "title": "Frequency Metrics",
+    "panels": [
+      {
+        "type": "graph",
+        "title": "Active Sessions",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "frequency_sessions_active",
+            "legendFormat": "Sessions"
+          }
+        ]
+      },
+      {
+        "type": "graph",
+        "title": "Messages Rate",
+        "datasource": "Prometheus",
+        "targets": [
+          {
+            "expr": "rate(frequency_messages_sent_total[1m])",
+            "legendFormat": "Messages/s"
+          }
+        ]
+      }
+    ]
+  }
