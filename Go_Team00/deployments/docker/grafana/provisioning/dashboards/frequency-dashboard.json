@@ -1,0 +1,64 @@
+{
+  "title": "Frequency Service Dashboard",
+  "tags": ["grpc", "performance"],
+  "editable": true,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Active Sessions",
+      "gridPos": {"x":0,"y":0,"w":6,"h":4},
+      "targets": [{
+        "expr": "frequency_sessions_active",
+        "legendFormat": "Active Sessions"
+      }]
+    },
+    {
+      "type": "graph",
+      "title": "Messages Rate",
+      "gridPos": {"x":6,"y":0,"w":12,"h":6},
+      "targets": [{
+        "expr": "rate(frequency_messages_sent_total[1m])",
+        "legendFormat": "Messages/s"
+      }]
+    },
+    {
+      "type": "gauge",
+      "title": "Memory Usage",
+      "gridPos": {"x":0,"y":4,"w":6,"h":4},
+      "targets": [{
+        "expr": "frequency_process_resident_memory_bytes",
+        "legendFormat": "Memory",
+        "format": "bytes"
+      }]
+    },
+    {
+      "type": "heatmap",
+      "title": "gRPC Request Duration",
+      "gridPos": {"x":0,"y":8,"w":12,"h":6},
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum(rate(grpc_request_duration_seconds[5m])) by (le, method)"
+      }]
+    },
+    {
+      "type": "table",
+      "title": "gRPC Requests Status",
+      "gridPos": {"x":12,"y":0,"w":12,"h":8},
+      "targets": [{
+        "expr": "sum by (status)(rate(grpc_requests_total[5m]))",
+        "format": "table"
+      }]
+    },
+    {
+      "type": "graph",
+      "title": "Error Rate",
+      "gridPos": {"x":12,"y":8,"w":12,"h":6},
+      "targets": [{
+        "expr": "rate(frequency_stream_errors_total[5m])",
+        "legendFormat": "Errors/s"
+      }]
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 27,
+  "version": 1
+}

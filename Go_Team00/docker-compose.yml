@@ -22,9 +22,18 @@ services:
       context: .
       dockerfile: Dockerfile
     command: ./client -k 2
+    ports:
+      - "8083:8083"
     env_file: .env 
     depends_on:
       - server
+    networks:
+      - backend
+
+  node-exporter:
+    image: prom/node-exporter
+    ports:
+      - "9100:9100"
     networks:
       - backend
 
@@ -32,6 +41,7 @@ services:
     image: prom/prometheus:latest
     volumes:
       - ./deployments/docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./deployments/docker/prometheus/alerts.yml:/etc/prometheus/alerts.yml
     ports:
       - "9090:9090"
     networks:

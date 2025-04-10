@@ -1,0 +1,34 @@
+{
+    "title": "Client Metrics",
+    "panels": [
+      {
+        "type": "graph",
+        "title": "Anomaly Rate",
+        "targets": [{
+          "expr": "rate(client_anomalies_detected_total[5m])",
+          "legendFormat": "Anomalies/s"
+        }]
+      },
+      {
+        "type": "gauge",
+        "title": "Connection Status",
+        "targets": [{
+          "expr": "client_connection_status"
+        }]
+      },
+      {
+        "type": "graph",
+        "title": "Current Statistics",
+        "targets": [
+          {
+            "expr": "client_current_mean",
+            "legendFormat": "Mean"
+          },
+          {
+            "expr": "client_current_stddev",
+            "legendFormat": "StdDev"
+          }
+        ]
+      }
+    ]
+  }

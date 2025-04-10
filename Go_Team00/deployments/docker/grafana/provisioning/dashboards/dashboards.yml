@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+- name: 'Frequency Dashboards'
+  orgId: 1
+  folder: ''
+  type: file
+  disableDeletion: true  # Запретить удаление через UI
+  updateIntervalSeconds: 30
+  options:
+    path: /etc/grafana/provisioning/dashboards
+    foldersFromFilesStructure: true

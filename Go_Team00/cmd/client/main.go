@@ -5,10 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"math"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -18,6 +21,42 @@ import (
 )
 
 var (
+	anomaliesDetected = prometheus.NewCounter(
+		prometheus.CounterOpts{
+			Name: "client_anomalies_detected_total",
+			Help: "Total number of detected anomalies",
+		},
+	)
+
+	processingTime = prometheus.NewHistogram(
+		prometheus.HistogramOpts{
+			Name:    "client_message_processing_seconds",
+			Help:    "Time spent processing messages",
+			Buckets: []float64{0.001, 0.005, 0.01, 0.05, 0.1},
+		},
+	)
+
+	connectionStatus = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "client_connection_status",
+			Help: "Client connection status (1 = connected, 0 = disconnected)",
+		},
+	)
+
+	currentMean = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "client_current_mean",
+			Help: "Current mean value of frequencies",
+		},
+	)
+
+	currentStdDev = prometheus.NewGauge(
+		prometheus.GaugeOpts{
+			Name: "client_current_stddev",
+			Help: "Current standard deviation of frequencies",
+		},
+	)
+
 	flagK float64 // Флаг k
 
 	bufPool = sync.Pool{
@@ -29,6 +68,13 @@ var (
 
 func init() {
 	flag.Float64Var(&flagK, "k", 1.0, "Value of anomaly coefficient")
+	prometheus.MustRegister(
+		anomaliesDetected,
+		processingTime,
+		connectionStatus,
+		currentMean,
+		currentStdDev,
+	)
 }
 
 type Statistics struct {
@@ -64,14 +110,21 @@ func (s *Statistics) findAnomaly(value float64) bool {
 }
 
 func process(setings *cnf.Config) {
+	// Запускаем HTTP-сервер для метрик
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		http.ListenAndServe(":8083", nil)
+	}()
 	// Устанавливаем соединение
 	conn, err := grpc.NewClient(setings.ServerHost+":"+setings.ServerPort, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		loger.WriteLog(fmt.Sprintf("Failed to connect to server: %v", err))
+		connectionStatus.Set(0)
 		return
 	}
 	defer conn.Close()
 
+	connectionStatus.Set(1)
 	loger.WriteLog("Процесс запущен")
 	client := api.NewFrequencyServiseClient(conn)
 
@@ -85,6 +138,7 @@ func process(setings *cnf.Config) {
 	entry := &api.Frequency{}
 
 	for {
+		start := time.Now()
 		entry = bufPool.Get().(*api.Frequency)
 		entry.Reset()
 		entry, err = stream.Recv()
@@ -107,9 +161,14 @@ func process(setings *cnf.Config) {
 			loger.WriteLog(fmt.Sprintf("Count: %v, mean: %v, stdDev: %v \n", stats.Count, stats.Mean, stats.StdDev))
 		}
 
+		currentMean.Set(stats.Mean)
+		currentStdDev.Set(stats.StdDev)
+
 		// Проверка на аномалию, если количество значений больше 10
 		if stats.Count > 10 {
 			if stats.findAnomaly(entry.Frequency) {
+				anomaliesDetected.Inc()
+				processingTime.Observe(time.Since(start).Seconds())
 				loger.WriteLog(fmt.Sprintf("Session ID: %s, Frequency: %f, Timestamp: %d\n", entry.SessionId, entry.Frequency, entry.Timestamp))
 			}
 		}

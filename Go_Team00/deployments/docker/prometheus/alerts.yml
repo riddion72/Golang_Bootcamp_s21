@@ -1,0 +1,30 @@
+groups:
+- name: frequency-alerts
+  rules:
+  - alert: HighErrorRate
+    expr: rate(frequency_stream_errors_total[5m]) > 0.5
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High error rate detected"
+      description: "Error rate is {{ $value }} errors/sec"
+- name: client-alerts
+  rules:
+  - alert: HighAnomalyRate
+    expr: rate(client_anomalies_detected_total[5m]) > 5
+    for: 2m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High anomaly detection rate"
+      description: "Anomaly detection rate is {{ $value }} per second"
+
+  - alert: ClientDisconnected
+    expr: client_connection_status == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Client disconnected from server"
+      description: "Client has been disconnected for more than 1 minute"
